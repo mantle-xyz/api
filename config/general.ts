@@ -14,41 +14,41 @@ Public API docs
 `;
 const SWAGGER_DESCRIPTION = {
   definition: {
-    openapi: "3.0.0",
+    openapi: '3.0.0',
     info: {
-      title: "Mantle Public API",
-      version: "0.1.0",
+      title: 'Mantle Public API',
+      version: '0.1.0',
       contact: {
-        email: "octavio.amu@mantle.xyz, grezle@mantle.xyz",
-        name: "Mantle Developers",
-        url: "https://mantle.xyz/",
-        "x-twitter": "0xmantle",
+        email: 'octavio.amu@mantle.xyz, grezle@mantle.xyz',
+        name: 'Mantle Developers',
+        url: 'https://mantle.xyz/',
+        'x-twitter': '0xmantle',
       },
       description: description,
 
       license: {
-        name: "MIT",
-        url: "https://opensource.org/licenses/MIT",
+        name: 'MIT',
+        url: 'https://opensource.org/licenses/MIT',
       },
-      "x-logo": {
-        url: "logo.png",
+      'x-logo': {
+        url: 'logo.png',
       },
       externalDocs: {
-        description: "GitHub v3 REST API",
-        url: "https://docs.github.com/rest/",
+        description: 'GitHub v3 REST API',
+        url: 'https://docs.github.com/rest/',
       },
     },
     servers: [
-      { url: "https://api.mantle.xyz/api/v1", description: "Production" },
-      { url: `${BASE_API}/api/v1`, description: "Preview" },
+      { url: 'https://api.mantle.xyz/api', description: 'Production' },
+      { url: `${BASE_API}/api`, description: 'Development' },
       {
-        url: "https://api-git-develop-mantle-xyz.vercel.app/api/v1",
-        description: "Development",
+        url: 'https://api-git-develop-mantle-xyz.vercel.app/api',
+        description: 'Preview',
       },
     ],
   },
-  apiFolder: "pages/api",
-  schemaFolders: ["types"],
+  apiFolder: 'pages/api',
+  schemaFolders: ['types'],
 };
 
 const BITDAO_LOCKED_ADDRESSES = [

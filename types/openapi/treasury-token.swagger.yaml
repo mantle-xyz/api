@@ -1,0 +1,72 @@
+openapi: 3.0.0
+info:
+  title: Converted from treasury-token.swagger.yaml with typeconv
+  version: '1'
+  x-id: treasury-token.swagger.yaml
+  x-comment: >-
+    Generated from types/treasury-token.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    TreasuryTokenBalance:
+      properties:
+        id:
+          title: TreasuryTokenBalance.id
+          type: string
+        chain:
+          title: TreasuryTokenBalance.chain
+          type: string
+        name:
+          title: TreasuryTokenBalance.name
+          type: string
+        symbol:
+          title: TreasuryTokenBalance.symbol
+          type: string
+        display_symbol:
+          title: TreasuryTokenBalance.display_symbol
+          type: string
+        optimized_symbol:
+          title: TreasuryTokenBalance.optimized_symbol
+          type: string
+        decimals:
+          title: TreasuryTokenBalance.decimals
+          type: number
+        logo_url:
+          title: TreasuryTokenBalance.logo_url
+          type: string
+        protocol_id:
+          title: TreasuryTokenBalance.protocol_id
+          type: string
+        price:
+          title: TreasuryTokenBalance.price
+          type: number
+        is_core:
+          title: TreasuryTokenBalance.is_core
+          type: boolean
+        is_wallet:
+          title: TreasuryTokenBalance.is_wallet
+          type: boolean
+        time_at:
+          title: TreasuryTokenBalance.time_at
+          type: number
+        amount:
+          title: TreasuryTokenBalance.amount
+          type: number
+        raw_amount:
+          title: TreasuryTokenBalance.raw_amount
+          type: number
+      required:
+        - id
+        - chain
+        - symbol
+        - price
+        - is_core
+        - is_wallet
+        - time_at
+        - amount
+        - raw_amount
+      additionalProperties: false
+      title: TreasuryTokenBalance
+      type: object
