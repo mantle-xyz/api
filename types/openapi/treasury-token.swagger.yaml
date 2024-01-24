@@ -70,3 +70,38 @@ components:
       additionalProperties: false
       title: TreasuryTokenBalance
       type: object
+    StatisticToken:
+      properties:
+        value:
+          title: value
+          type: number
+        name:
+          title: name
+          type: string
+        percent:
+          title: percent
+          type: string
+      required:
+        - value
+        - name
+        - percent
+      additionalProperties: false
+      title: StatisticToken
+      type: object
+    TreasuryStatistic:
+      properties:
+        total:
+          title: TreasuryStatistic.total
+          type: number
+        tokens:
+          items:
+            $ref: '#/components/schemas/StatisticToken'
+            title: TreasuryStatistic.tokens.[]
+          title: TreasuryStatistic.tokens
+          type: array
+      required:
+        - total
+        - tokens
+      additionalProperties: false
+      title: TreasuryStatistic
+      type: object

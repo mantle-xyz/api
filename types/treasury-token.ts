@@ -15,3 +15,10 @@ export type TreasuryTokenBalance = {
   amount: number;
   raw_amount: number;
 };
+
+export type StatisticToken = Pick<TreasuryTokenBalance, 'symbol' | 'amount' | 'price' | 'logo_url'> & {value: number; name: string; percent: string};
+
+export type TreasuryStatistic = {
+  total: number;
+  tokens: StatisticToken[];
+}

@@ -1,10 +1,11 @@
-import { fetchTreasuryBalanceWithCache } from '@/services/treasury';
+import { fetchTreasuryTokenList, statisticTreasuryTokenList } from '@/services/treasury';
 import { createSchema, createYoga } from 'graphql-yoga';
 
 export const schema = createSchema({
   typeDefs: /* GraphQL */ `
     type Query {
-      treasury: [TokenBalance!]!
+      treasuryTokens: [TokenBalance!]!
+      treasuryStatistics: Statistics!
     }
 
     type TokenBalance {
@@ -24,10 +25,26 @@ export const schema = createSchema({
       amount: Float!
       raw_amount: Int!
     }
+
+    type StatisticsToken {
+        symbol: String!
+        name: String!
+        amount: Float!
+        price: Float!
+        value: Float!
+        percent: String!
+        logo_url: String
+    }
+
+    type Statistics {
+        total: Float!
+        tokens: [StatisticsToken!]!
+    }
   `,
   resolvers: {
     Query: {
-      treasury: fetchTreasuryBalanceWithCache,
+      treasuryTokens: fetchTreasuryTokenList,
+      treasuryStatistics: statisticTreasuryTokenList,
     },
   },
 });

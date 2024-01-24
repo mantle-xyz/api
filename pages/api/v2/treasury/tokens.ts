@@ -1,13 +1,13 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { cacheTime, fetchTreasuryAssets } from '@/services/treasury';
+import { cacheTime, fetchTreasuryTokenList } from '@/services/treasury';
 import { ExternalAPICallError } from '@/error';
 
 /**
  * @swagger
- * /v2/treasury:
+ * /v2/treasury/tokens:
  *  get:
  *    tags: [Treasury]
- *    summary: Get mantle treasury balance
+ *    summary: Get mantle treasury all tokens and balances
  *
  *    description: |-
  *      **Returns mantle treasury token supply data**
@@ -27,7 +27,7 @@ import { ExternalAPICallError } from '@/error';
  *                 $ref: '#/components/schemas/TreasuryTokenBalance'
  *
  */
-export default async function treasury(
+export default async function tokenList(
   req: NextApiRequest,
   res: NextApiResponse,
 ) {
@@ -50,7 +50,7 @@ export default async function treasury(
       `max-age==${cacheTime},public,must-revalidate`,
     );
 
-    const result = await fetchTreasuryAssets();
+    const result = await fetchTreasuryTokenList();
     res.json(result);
   } catch (error: unknown) {
     console.error(error);

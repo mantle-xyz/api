@@ -1,5 +1,6 @@
 import { ExternalAPICallError } from '@/error';
-import { TreasuryTokenBalance } from '@/types/treasury-token';
+import { StatisticToken, TreasuryStatistic, TreasuryTokenBalance } from '@/types/treasury-token';
+import _ from 'lodash';
 
 /*
  {
@@ -103,6 +104,7 @@ const eth = {
   name: 'Ethereum',
   decimals: 18,
   coinGeckoId: 'ethereum',
+  l1Address: 'eth',
 };
 
 const erc20Tokens = [
@@ -111,30 +113,30 @@ const erc20Tokens = [
     name: 'Mantle',
     decimals: 18,
     coinGeckoId: 'mantle',
-    l1Address: '0x3c3a81e81dc49A522A592e7622A7E711c06bf354',
-    l2Address: '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000',
+    l1Address: '0x3c3a81e81dc49a522a592e7622a7e711c06bf354',
+    l2Address: 'mnt',
   },
   {
     symbol: 'WMNT',
     name: 'Wrapped MNT',
     decimals: 18,
     coinGeckoId: 'wrapped-mantle',
-    l2Address: '0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8',
+    l2Address: '0x78c1b0c915c4faa5fffa6cabf0219da63d7f4cb8',
   },
   {
     symbol: 'WETH',
     name: 'Wrapped Ether',
     decimals: 18,
     coinGeckoId: 'weth',
-    l1Address: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2',
-    l2Address: '0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111',
+    l1Address: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2',
+    l2Address: '0xdeaddeaddeaddeaddeaddeaddeaddeaddead1111',
   },
   {
     symbol: 'stETH',
     name: 'stETH',
     decimals: 18,
     coinGeckoId: 'staked-ether',
-    l1Address: '0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84',
+    l1Address: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
   },
   {
     symbol: 'wstETH',
@@ -142,43 +144,43 @@ const erc20Tokens = [
     decimals: 18,
     coinGeckoId: 'wrapped-steth',
     l1Address: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0',
-    l2Address: '0x636D4073738C071326Aa70c9e5DB7C334bEb87bE',
+    l2Address: '0x636d4073738c071326aa70c9e5db7c334beb87be',
   },
   {
     symbol: 'mETH',
     name: 'mETH',
     decimals: 18,
     coinGeckoId: 'mantle-staked-ether',
-    l1Address: '0xd5F7838F5C461fefF7FE49ea5ebaF7728bB0ADfa',
-    l2Address: '0xcDA86A272531e8640cD7F1a92c01839911B90bb0',
+    l1Address: '0xd5f7838f5c461feff7fe49ea5ebaf7728bb0adfa',
+    l2Address: '0xcda86a272531e8640cd7f1a92c01839911b90bb0',
   },
   {
     symbol: 'USDC',
     name: 'USDC',
     decimals: 6,
     coinGeckoId: 'usd-coin',
-    l1Address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    l2Address: '0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9',
+    l1Address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+    l2Address: '0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9',
   },
   {
     symbol: 'USDT',
     name: 'Tether USD',
     decimals: 6,
     coinGeckoId: 'tether',
-    l1Address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    l2Address: '0x201EBa5CC46D216Ce6DC03F6a759e8E766e956aE',
+    l1Address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+    l2Address: '0x201eba5cc46d216ce6dc03f6a759e8e766e956ae',
   },
   {
     symbol: 'USDY',
     name: 'Ondo U.S. Dollar Yield',
     decimals: 18,
     coinGeckoId: 'ondo-us-dollar-yield',
-    l1Address: '0x96F6eF951840721AdBF46Ac996b59E0235CB985C',
-    l2Address: '0x5bE26527e817998A7206475496fDE1E68957c5A6',
+    l1Address: '0x96f6ef951840721adbf46ac996b59e0235cb985c',
+    l2Address: '0x5be26527e817998a7206475496fde1e68957c5a6',
   },
 ];
 
-const tokens = [eth, ...erc20Tokens];
+const wellKnownTokens = [eth, ...erc20Tokens] as ({symbol: string; name: string} & ({l1Address: string; l2Address?: string} | {l1Address?: string; l2Address: string}))[];
 
 export const cacheTime = 60 * 60; // 1 hour
 
@@ -186,9 +188,9 @@ let cache: TokenBalance[];
 let updatedAt = 0;
 let fetchPromise: Promise<void> | undefined;
 
-export async function fetchTreasuryBalanceWithCache(): Promise<TokenBalance[]> {
+export async function fetchTreasuryTokenList(): Promise<TokenBalance[]> {
   if (!fetchPromise && Date.now() - updatedAt > cacheTime * 1000 - 10_000) {
-    fetchPromise = fetchTreasuryAssets()
+    fetchPromise = fetchTreasuryTokenListWithoutCache()
       .then((res) => {
         fetchPromise = undefined;
         cache = res;
@@ -204,7 +206,7 @@ export async function fetchTreasuryBalanceWithCache(): Promise<TokenBalance[]> {
   return cache;
 }
 
-export function fetchTreasuryAssets(): Promise<TokenBalance[]> {
+export function fetchTreasuryTokenListWithoutCache(): Promise<TokenBalance[]> {
   const layer1Wallets = coreWallets.filter((w) => w[1] === 1).map((w) => w[0]);
   const layer2Wallets = [
     ...coreWallets.filter((w) => w[1] === 2).map((w) => w[0]),
@@ -215,6 +217,46 @@ export function fetchTreasuryAssets(): Promise<TokenBalance[]> {
     ...layer1Wallets.map((w) => fetchTokenList(w, 'eth')),
     ...layer2Wallets.map((w) => fetchTokenList(w, 'mnt')),
   ]).then((res) => res.flat());
+}
+
+export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {
+  return fetchTreasuryTokenList().then(statistics);
+}
+
+function statistics(tokens: TokenBalance[]) {
+    // merge amount by id
+    const tokenMap = tokens.reduce((acc, { id, amount, price, logo_url }) => {
+        id = id.toLowerCase();
+
+        if (acc[id]) acc[id].amount += amount;
+        else acc[id] = { amount, price, logo_url };
+
+        return acc;
+    }, {} as Record<string, Pick<TokenBalance, 'amount' | 'price' | 'logo_url'>>);
+
+    // merge l1 and l2 token amount
+    const tokenBalance = wellKnownTokens.map(({ l1Address, l2Address, symbol, name }) => {
+        const t1 = tokenMap[l1Address ?? ''];
+        const t2 = tokenMap[l2Address ?? ''];
+        const amount = (t1?.amount || 0) + (t2?.amount || 0);
+        const t = t1 || t2;
+        return { ...t, amount, symbol, name };
+    });
+
+    // merge MNT and ETH
+    const mergeTokens = () => {
+        const tokenBySymbol = _.keyBy(tokenBalance, 'symbol');
+        const { MNT, WMNT, ETH, WETH, stETH, ...rest } = tokenBySymbol;
+        MNT.amount += WMNT.amount;
+        ETH.amount += WETH.amount + stETH.amount;
+
+        return [MNT, ETH, ...Object.values(rest)];
+    };
+
+    const tokensWithValue = mergeTokens().map(t => ({ ...t, value: t.amount * t.price }));
+    const total = _.sumBy(tokensWithValue, 'value');
+    const tokensWithPercent = _.sortBy(tokensWithValue, 'value').map(t => ({ ...t, percent: ((t.value * 100 / total)).toFixed(2) + '%' }));
+    return { total, tokens: tokensWithPercent };
 }
 
 const DEBANK_API_BASE = 'https://pro-openapi.debank.com/v1';
