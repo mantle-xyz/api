@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 
-import * as configFile from '../config/general.ts';
-
 import fs from 'fs/promises';
+import * as configFile from '../config/general.ts';
 
 const generateFile = async () => {
   // const configFile = await import("../config/general.ts");

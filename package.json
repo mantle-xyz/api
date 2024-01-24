@@ -5,8 +5,8 @@
   "scripts": {
     "predev": "npm run openapi:yaml && npm run swagger",
     "dev": "next dev",
-    "prebuild": "npm run openapi:yaml && npm run swagger",
-    "build": "next build",
+    "build:doc": "npm run openapi:yaml && npm run swagger",
+    "build": "npm run build:doc && next build",
     "start": "next start",
     "lint": "next lint",
     "openapi:yaml": "typeconv -f ts -t oapi --oapi-format yaml --output-extension 'swagger.yaml' --output-directory 'types/openapi' 'types/*.ts'",
@@ -47,7 +47,7 @@
     "encoding": "^0.1.13",
     "eslint-config-prettier": "^8.8.0",
     "prettier": "^3.0.0",
-    "ts-node": "^10.9.1",
+    "tsx": "^4.7.0",
     "typeconv": "^2.3.1"
   }
 }
