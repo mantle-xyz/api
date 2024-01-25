@@ -1,27 +1,9 @@
 import { ExternalAPICallError } from '@/error';
-import { TreasuryStatistic, TreasuryTokenBalance } from '@/types/treasury-token';
+import type {
+  TreasuryStatistic,
+  TreasuryTokenBalance as TokenBalance,
+} from '@/types/treasury-token';
 import _ from 'lodash';
-
-/*
- {
-    "id": "0x0000000000085d4780b73119b644ae5ecd22b376",
-    "chain": "eth",
-    "name": "TrueUSD",
-    "symbol": "TUSD",
-    "display_symbol": null,
-    "optimized_symbol": "TUSD",
-    "decimals": 18,
-    "logo_url": "https://static.debank.com/image/eth_token/logo_url/0x0000000000085d4780b73119b644ae5ecd22b376/9fedba67e80a738c281bd0ba8e9f1c5e.png",
-    "protocol_id": "",
-    "price": 1,
-    "is_core": true,
-    "is_wallet": true,
-    "time_at": 1546294558,
-    "amount": 21.709487132565773,
-    "raw_amount": 21709487132565774000
-  }
- */
-type TokenBalance = TreasuryTokenBalance;
 
 // docs:
 // https://skfc4x16la.larksuite.com/wiki/JjAhwRy9hiw1cykzI26uuxtDsr9?chunked=false
@@ -180,7 +162,13 @@ const erc20Tokens = [
   },
 ];
 
-const wellKnownTokens = [eth, ...erc20Tokens] as ({symbol: string; name: string} & ({l1Address: string; l2Address?: string} | {l1Address?: string; l2Address: string}))[];
+const wellKnownTokens = [eth, ...erc20Tokens] as ({
+  symbol: string;
+  name: string;
+} & (
+  | { l1Address: string; l2Address?: string }
+  | { l1Address?: string; l2Address: string }
+))[];
 
 export const cacheTime = 60 * 60; // 1 hour
 
@@ -192,12 +180,15 @@ export async function fetchTreasuryTokenList(): Promise<TokenBalance[]> {
   if (!fetchPromise && Date.now() - updatedAt > cacheTime * 1000 - 10_000) {
     fetchPromise = fetchTreasuryTokenListWithoutCache()
       .then((res) => {
-        fetchPromise = undefined;
         cache = res;
         updatedAt = Date.now();
       })
       .catch((e) => {
         console.error(e);
+        if (!cache) throw e;
+      })
+      .finally(() => {
+        fetchPromise = undefined;
       });
   }
 
@@ -224,39 +215,52 @@ export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {
 }
 
 function statistics(tokens: TokenBalance[]) {
-    // merge amount by id
-    const tokenMap = tokens.reduce((acc, { id, amount, price, logo_url }) => {
-        id = id.toLowerCase();
+  // merge amount by id
+  const tokenMap = tokens.reduce(
+    (acc, { id, amount, price, logo_url }) => {
+      id = id.toLowerCase();
 
-        if (acc[id]) acc[id].amount += amount;
-        else acc[id] = { amount, price, logo_url };
+      if (acc[id]) acc[id].amount += amount;
+      else acc[id] = { amount, price, logo_url };
 
-        return acc;
-    }, {} as Record<string, Pick<TokenBalance, 'amount' | 'price' | 'logo_url'>>);
+      return acc;
+    },
+    {} as Record<string, Pick<TokenBalance, 'amount' | 'price' | 'logo_url'>>,
+  );
 
-    // merge l1 and l2 token amount
-    const tokenBalance = wellKnownTokens.map(({ l1Address, l2Address, symbol, name }) => {
-        const t1 = tokenMap[l1Address ?? ''];
-        const t2 = tokenMap[l2Address ?? ''];
-        const amount = (t1?.amount || 0) + (t2?.amount || 0);
-        const t = t1 || t2;
-        return { ...t, amount, symbol, name };
-    });
+  // merge l1 and l2 token amount
+  const tokenBalance = wellKnownTokens.map(
+    ({ l1Address, l2Address, symbol, name }) => {
+      const t1 = tokenMap[l1Address ?? ''];
+      const t2 = tokenMap[l2Address ?? ''];
+      const amount = (t1?.amount || 0) + (t2?.amount || 0);
+      const t = t1 || t2 || { price: 0 };
+      return { ...t, amount, symbol, name };
+    },
+  );
 
-    // merge MNT and ETH
-    const mergeTokens = () => {
-        const tokenBySymbol = _.keyBy(tokenBalance, 'symbol');
-        const { MNT, WMNT, ETH, WETH, stETH, ...rest } = tokenBySymbol;
-        MNT.amount += WMNT.amount;
-        ETH.amount += WETH.amount + stETH.amount;
+  // merge MNT and ETH
+  const mergeTokens = () => {
+    const tokenBySymbol = _.keyBy(tokenBalance, 'symbol');
+    const { MNT, WMNT, ETH, WETH, stETH, ...rest } = tokenBySymbol;
+    MNT.amount += WMNT.amount;
+    ETH.amount += WETH.amount + stETH.amount;
 
-        return [MNT, ETH, ...Object.values(rest)];
-    };
+    return [MNT, ETH, ...Object.values(rest)];
+  };
 
-    const tokensWithValue = mergeTokens().map(t => ({ ...t, value: t.amount * t.price }));
-    const total = _.sumBy(tokensWithValue, 'value');
-    const tokensWithPercent = _.sortBy(tokensWithValue, 'value').reverse().map(t => ({ ...t, percent: ((t.value * 100 / total)).toFixed(2) + '%' }));
-    return { total, tokens: tokensWithPercent };
+  const tokensWithValue = mergeTokens().map((t) => ({
+    ...t,
+    value: t.amount * t.price,
+  }));
+  const total = _.sumBy(tokensWithValue, 'value');
+  const tokensWithPercent = _.sortBy(tokensWithValue, 'value')
+    .reverse()
+    .map((t) => ({
+      ...t,
+      percent: ((t.value * 100) / total).toFixed(2) + '%',
+    }));
+  return { total, tokens: tokensWithPercent };
 }
 
 const DEBANK_API_BASE = 'https://pro-openapi.debank.com/v1';
@@ -265,61 +269,52 @@ function fetchTokenList(
   walletAddress: string,
   chain: 'eth' | 'mnt',
 ): PromiseLike<TokenBalance[]> {
-  /* mock
-  return Promise.resolve([
-    {
-      id: '0x0000000000004946c0e9f43f4dee607b0ef1fa1c',
-      chain: 'eth',
-      name: 'Chi Gastoken by 1inch',
-      symbol: 'CHI',
-      display_symbol: null,
-      optimized_symbol: 'CHI',
-      decimals: 0,
-      logo_url:
-        'https://static.debank.com/image/eth_token/logo_url/0x0000000000004946c0e9f43f4dee607b0ef1fa1c/5d763d01aae3f0ac9a373564026cb620.png',
-      protocol_id: '1inch',
-      price: 0,
-      is_core: true,
-      is_wallet: true,
-      time_at: 1590352004,
-      amount: 3,
-      raw_amount: 3,
+  const protocolTokensPromise = fetchJSON(
+    `/user/complex_protocol_list?id=${walletAddress}&chain_id=${chain}`,
+  ).then((protocols) =>
+    protocols.flatMap(
+      ({
+        portfolio_item_list,
+        has_supported_portfolio,
+      }: {
+        portfolio_item_list: { asset_token_list?: TokenBalance[] }[];
+        has_supported_portfolio: boolean;
+      }) =>
+        has_supported_portfolio
+          ? portfolio_item_list.flatMap((i) =>
+              i.asset_token_list && i.asset_token_list.length > 1
+                ? i.asset_token_list
+                : [],
+            )
+          : [],
+    ),
+  );
+
+  const tokensPromise = fetchJSON(
+    `/user/token_list?id=${walletAddress}&chain_id=${chain}&is_all=true`,
+  );
+  return Promise.all([tokensPromise, protocolTokensPromise])
+    .then((r) => r.flat())
+    .then((data) =>
+      data
+        .filter(
+          (t: { symbol?: string; amount: number; price: number }) =>
+            t.symbol && t.amount && t.price,
+        )
+        .map((t) => ({ ...t, walletAddress })),
+    );
+}
+
+function fetchJSON(path: string) {
+  return fetch(`${DEBANK_API_BASE}${path}`, {
+    method: 'GET',
+    headers: {
+      accept: 'application/json',
+      AccessKey: process.env.DEBANK_ACCESSKEY!,
     },
-    {
-      id: '0x0000000000085d4780b73119b644ae5ecd22b376',
-      chain: 'eth',
-      name: 'TrueUSD',
-      symbol: 'TUSD',
-      display_symbol: null,
-      optimized_symbol: 'TUSD',
-      decimals: 18,
-      logo_url:
-        'https://static.debank.com/image/eth_token/logo_url/0x0000000000085d4780b73119b644ae5ecd22b376/9fedba67e80a738c281bd0ba8e9f1c5e.png',
-      protocol_id: '',
-      price: 1,
-      is_core: true,
-      is_wallet: true,
-      time_at: 1546294558,
-      amount: 21.709487132565773,
-      raw_amount: 21709487132565774000,
-    },
-  ]);
-     */
-  return fetch(
-    `${DEBANK_API_BASE}/user/token_list?id=${walletAddress}&chain_id=${chain}&is_all=true`,
-    {
-      method: 'GET',
-      headers: {
-        accept: 'application/json',
-        AccessKey: process.env.DEBANK_ACCESSKEY!,
-      },
-    },
-  ).then((res) =>
+  }).then((res) =>
     res.json().then((data) => {
-      if (res.ok)
-        return data.filter(
-          (t: { symbol?: string; amount: number }) => t.symbol && t.amount,
-        );
+      if (res.ok) return data;
 
       throw new ExternalAPICallError(
         'DEBANK',
