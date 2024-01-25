@@ -12,66 +12,78 @@ components:
   schemas:
     TreasuryTokenBalance:
       properties:
-        id:
-          title: TreasuryTokenBalance.id
-          type: string
-        chain:
-          title: TreasuryTokenBalance.chain
-          type: string
-        name:
-          title: TreasuryTokenBalance.name
-          type: string
         symbol:
-          title: TreasuryTokenBalance.symbol
+          title: TreasuryTokenCommon.symbol
           type: string
-        display_symbol:
-          title: TreasuryTokenBalance.display_symbol
-          type: string
-        optimized_symbol:
-          title: TreasuryTokenBalance.optimized_symbol
-          type: string
-        decimals:
-          title: TreasuryTokenBalance.decimals
-          type: number
         logo_url:
-          title: TreasuryTokenBalance.logo_url
-          type: string
-        protocol_id:
-          title: TreasuryTokenBalance.protocol_id
+          title: TreasuryTokenCommon.logo_url
           type: string
         price:
-          title: TreasuryTokenBalance.price
-          type: number
-        is_core:
-          title: TreasuryTokenBalance.is_core
-          type: boolean
-        is_wallet:
-          title: TreasuryTokenBalance.is_wallet
-          type: boolean
-        time_at:
-          title: TreasuryTokenBalance.time_at
+          title: TreasuryTokenCommon.price
           type: number
         amount:
-          title: TreasuryTokenBalance.amount
+          title: TreasuryTokenCommon.amount
+          type: number
+        id:
+          title: id
+          type: string
+        chain:
+          title: chain
+          type: string
+        name:
+          title: name
+          type: string
+        display_symbol:
+          title: display_symbol
+          type: string
+        optimized_symbol:
+          title: optimized_symbol
+          type: string
+        decimals:
+          title: decimals
+          type: number
+        protocol_id:
+          title: protocol_id
+          type: string
+        is_core:
+          title: is_core
+          type: boolean
+        is_wallet:
+          title: is_wallet
+          type: boolean
+        time_at:
+          title: time_at
           type: number
         raw_amount:
-          title: TreasuryTokenBalance.raw_amount
+          title: raw_amount
           type: number
       required:
-        - id
-        - chain
         - symbol
         - price
+        - amount
+        - id
+        - chain
         - is_core
         - is_wallet
         - time_at
-        - amount
         - raw_amount
       additionalProperties: false
-      title: TreasuryTokenBalance
+      title: TreasuryTokenBalance, TreasuryTokenCommon
       type: object
     StatisticToken:
       properties:
+        symbol:
+          title: TreasuryTokenCommon.symbol
+          type: string
+        logo_url:
+          title: TreasuryTokenCommon.logo_url
+          type: string
+        price:
+          title: TreasuryTokenCommon.price
+          type: number
+        amount:
+          title: TreasuryTokenCommon.amount
+          type: number
         value:
           title: value
           type: number
@@ -82,11 +94,14 @@ components:
           title: percent
           type: string
       required:
+        - symbol
+        - price
+        - amount
         - value
         - name
         - percent
       additionalProperties: false
-      title: StatisticToken
+      title: StatisticToken, TreasuryTokenCommon
       type: object
     TreasuryStatistic:
       properties:
@@ -104,4 +119,25 @@ components:
         - tokens
       additionalProperties: false
       title: TreasuryStatistic
+      type: object
+    TreasuryTokenCommon:
+      properties:
+        symbol:
+          title: TreasuryTokenCommon.symbol
+          type: string
+        logo_url:
+          title: TreasuryTokenCommon.logo_url
+          type: string
+        price:
+          title: TreasuryTokenCommon.price
+          type: number
+        amount:
+          title: TreasuryTokenCommon.amount
+          type: number
+      required:
+        - symbol
+        - price
+        - amount
+      additionalProperties: false
+      title: TreasuryTokenCommon
       type: object
