@@ -1,5 +1,5 @@
 import { ExternalAPICallError } from '@/error';
-import { StatisticToken, TreasuryStatistic, TreasuryTokenBalance } from '@/types/treasury-token';
+import { TreasuryStatistic, TreasuryTokenBalance } from '@/types/treasury-token';
 import _ from 'lodash';
 
 /*
@@ -255,7 +255,7 @@ function statistics(tokens: TokenBalance[]) {
 
     const tokensWithValue = mergeTokens().map(t => ({ ...t, value: t.amount * t.price }));
     const total = _.sumBy(tokensWithValue, 'value');
-    const tokensWithPercent = _.sortBy(tokensWithValue, 'value').map(t => ({ ...t, percent: ((t.value * 100 / total)).toFixed(2) + '%' }));
+    const tokensWithPercent = _.sortBy(tokensWithValue, 'value').reverse().map(t => ({ ...t, percent: ((t.value * 100 / total)).toFixed(2) + '%' }));
     return { total, tokens: tokensWithPercent };
 }
 
