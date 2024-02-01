@@ -11,17 +11,17 @@ import _ from 'lodash';
 
 const coreWallets = [
   // MTreasuryL1	Eth
-  ['0x78605Df79524164911C144801f41e9811B7DB73D', 1],
+  '0x78605Df79524164911C144801f41e9811B7DB73D',
   // MTreasuryL2	Mantle
-  ['0x94FEC56BBEcEaCC71c9e61623ACE9F8e1B1cf473', 2],
+  '0x94FEC56BBEcEaCC71c9e61623ACE9F8e1B1cf473',
   // MTreasuryL1 - SC	Eth
-  ['0xCa264A4Adf80d3c390233de135468A914f99B6a5', 1],
+  '0xCa264A4Adf80d3c390233de135468A914f99B6a5',
   // MTreasuryL1 - O1	Eth
-  ['0xf0e91a74cb053d79b39837E1cfba947D0c98dd93', 1],
+  '0xf0e91a74cb053d79b39837E1cfba947D0c98dd93',
   // MTreasuryL1 - E1	Eth
-  ['0x1a743BD810dde05fa897Ec41FE4D42068F7fD6b2', 1],
+  '0x1a743BD810dde05fa897Ec41FE4D42068F7fD6b2',
   // MTreasuryL1 - RB1	Eth
-  ['0x164Cf077D3004bC1f26E7A46Ad8fA54df4449E3F', 1],
+  '0x164Cf077D3004bC1f26E7A46Ad8fA54df4449E3F',
 ] as const;
 
 const ecspWallets = [
@@ -215,19 +215,14 @@ export async function fetchTreasuryTokenList(): Promise<TokenBalance[]> {
 }
 
 export function fetchTreasuryTokenListWithoutCache(): Promise<TokenBalance[]> {
-  const layer1Wallets = [
-    ...coreWallets.filter((w) => w[1] === 1).map((w) => w[0]),
-    ...escpWallets,
-  ];
-  const layer2Wallets = [
-    ...coreWallets.filter((w) => w[1] === 2).map((w) => w[0]),
-    ...ecspWallets,
-  ];
+  const allWallets = [...coreWallets, ...ecspWallets, ...escpWallets];
 
-  return Promise.all([
-    ...layer1Wallets.map((w) => fetchTokenList(w, 'eth')),
-    ...layer2Wallets.map((w) => fetchTokenList(w, 'mnt')),
-  ]).then((res) => res.flat());
+  return Promise.all(
+    allWallets.flatMap((w) => [
+      fetchTokenList(w, 'eth'),
+      fetchTokenList(w, 'mnt'),
+    ]),
+  ).then((res) => res.flat());
 }
 
 export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {
