@@ -73,6 +73,11 @@ const ecspWallets = [
   '0x50f6e426fdefb3f994d3fe9fa4e1ee715f85de7f',
 ] as const;
 
+const escpWallets = [
+  // ESCP-T-501
+  '0x7427b4Fd78974Ba1C3B5d69e2F1B8ACF654fEB44',
+] as const;
+
 /**
  * - MNT: includes L1 MNT, L2 MNT, L2 WMNT, DeFi: UniV3LP MNT
 - ETH: includes L1 ETH, L1 WETH, L1stETH, L2 WETH, DeFi: UniV3LP WETH
@@ -160,6 +165,18 @@ const erc20Tokens = [
     l1Address: '0x96f6ef951840721adbf46ac996b59e0235cb985c',
     l2Address: '0x5be26527e817998a7206475496fde1e68957c5a6',
   },
+  {
+    symbol: 'USDe',
+    name: 'USDe',
+    decimals: 18,
+    l1Address: '0x4c9edd5852cd905f086c759e8383e09bff1e68b3',
+  },
+  {
+    symbol: 'sUSDe',
+    name: 'Staked USDe',
+    decimals: 18,
+    l1Address: '0x9d39a5de30e57443bff2a8307a4256c8797a3497',
+  },
 ];
 
 const wellKnownTokens = [eth, ...erc20Tokens] as ({
@@ -198,7 +215,10 @@ export async function fetchTreasuryTokenList(): Promise<TokenBalance[]> {
 }
 
 export function fetchTreasuryTokenListWithoutCache(): Promise<TokenBalance[]> {
-  const layer1Wallets = coreWallets.filter((w) => w[1] === 1).map((w) => w[0]);
+  const layer1Wallets = [
+    ...coreWallets.filter((w) => w[1] === 1).map((w) => w[0]),
+    ...escpWallets,
+  ];
   const layer2Wallets = [
     ...coreWallets.filter((w) => w[1] === 2).map((w) => w[0]),
     ...ecspWallets,
@@ -242,11 +262,12 @@ function statistics(tokens: TokenBalance[]) {
   // merge MNT and ETH
   const mergeTokens = () => {
     const tokenBySymbol = _.keyBy(tokenBalance, 'symbol');
-    const { MNT, WMNT, ETH, WETH, stETH, ...rest } = tokenBySymbol;
+    const { MNT, WMNT, ETH, WETH, stETH, USDe, sUSDe, ...rest } = tokenBySymbol;
     MNT.amount += WMNT.amount;
     ETH.amount += WETH.amount + stETH.amount;
+    USDe.amount += sUSDe.amount;
 
-    return [MNT, ETH, ...Object.values(rest)];
+    return [MNT, ETH, USDe, ...Object.values(rest)];
   };
 
   const tokensWithValue = mergeTokens().map((t) => ({
