@@ -194,6 +194,10 @@ let cache: TokenBalance[];
 let updatedAt = 0;
 let fetchPromise: Promise<void> | undefined;
 
+export function getUpdatedAt() {
+  return updatedAt;
+}
+
 export async function fetchTreasuryTokenList(): Promise<TokenBalance[]> {
   if (!fetchPromise && Date.now() - updatedAt > cacheTime * 1000 - 10_000) {
     fetchPromise = fetchTreasuryTokenListWithoutCache()

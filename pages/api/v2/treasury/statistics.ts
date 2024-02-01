@@ -1,5 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { cacheTime, statisticTreasuryTokenList } from '@/services/treasury';
+import {
+  cacheTime,
+  getUpdatedAt,
+  statisticTreasuryTokenList,
+} from '@/services/treasury';
 import { ExternalAPICallError } from '@/error';
 
 /**
@@ -49,7 +53,7 @@ export default async function statistics(
     );
 
     const result = await statisticTreasuryTokenList();
-    res.json({ ...result, cacheTime });
+    res.json({ ...result, updatedAt: getUpdatedAt() });
   } catch (error: unknown) {
     console.error(error);
 
