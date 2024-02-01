@@ -3,6 +3,7 @@ import type {
   TreasuryStatistic,
   TreasuryTokenBalance as TokenBalance,
 } from '@/types/treasury-token';
+import { sleep } from '@/utils';
 import _ from 'lodash';
 
 // docs:
@@ -214,15 +215,25 @@ export async function fetchTreasuryTokenList(): Promise<TokenBalance[]> {
   return cache;
 }
 
-export function fetchTreasuryTokenListWithoutCache(): Promise<TokenBalance[]> {
+export async function fetchTreasuryTokenListWithoutCache(): Promise<
+  TokenBalance[]
+> {
   const allWallets = [...coreWallets, ...ecspWallets, ...escpWallets];
 
-  return Promise.all(
-    allWallets.flatMap((w) => [
-      fetchTokenList(w, 'eth'),
-      fetchTokenList(w, 'mnt'),
-    ]),
-  ).then((res) => res.flat());
+  const eth = await Promise.all(
+    allWallets.map((w) => fetchTokenList(w, 'eth')),
+  );
+  await sleep(1000);
+  const nmt = await Promise.all(
+    allWallets.map((w) => fetchTokenList(w, 'mnt')),
+  );
+  return [...eth, ...nmt].flat();
+  // return Promise.all(
+  //   allWallets.flatMap((w) => [
+  //     fetchTokenList(w, 'eth'),
+  //     fetchTokenList(w, 'mnt'),
+  //   ]),
+  // ).then((res) => res.flat());
 }
 
 export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {

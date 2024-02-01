@@ -49,7 +49,7 @@ export default async function statistics(
     );
 
     const result = await statisticTreasuryTokenList();
-    res.json(result);
+    res.json({ ...result, cacheTime });
   } catch (error: unknown) {
     console.error(error);
 
