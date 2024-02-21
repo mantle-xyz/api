@@ -95,6 +95,13 @@ const eth = {
   l1Address: 'eth',
 };
 
+const EigenLayerETH = {
+  symbol: 'EigenLayerETH',
+  name: 'EigenLayerETH',
+  decimals: 18,
+  l1Address: 'eigen-layer-eth',
+};
+
 const erc20Tokens = [
   {
     symbol: 'MNT',
@@ -126,14 +133,15 @@ const erc20Tokens = [
     coinGeckoId: 'staked-ether',
     l1Address: '0xae7ab96520de3a18e5e111b5eaab095312d7fe84',
   },
-  {
-    symbol: 'wstETH',
-    name: 'Wrapped liquid staked Ether 2.0',
-    decimals: 18,
-    coinGeckoId: 'wrapped-steth',
-    l1Address: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0',
-    l2Address: '0x636d4073738c071326aa70c9e5db7c334beb87be',
-  },
+  // amount is zero
+  // {
+  //   symbol: 'wstETH',
+  //   name: 'Wrapped liquid staked Ether 2.0',
+  //   decimals: 18,
+  //   coinGeckoId: 'wrapped-steth',
+  //   l1Address: '0x7f39c581f595b53c5cb19bd0b3f8da6c935e2ca0',
+  //   l2Address: '0x636d4073738c071326aa70c9e5db7c334beb87be',
+  // },
   {
     symbol: 'mETH',
     name: 'mETH',
@@ -180,7 +188,7 @@ const erc20Tokens = [
   },
 ];
 
-const wellKnownTokens = [eth, ...erc20Tokens] as ({
+const wellKnownTokens = [eth, EigenLayerETH, ...erc20Tokens] as ({
   symbol: string;
   name: string;
 } & (
@@ -244,7 +252,8 @@ export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {
   return fetchTreasuryTokenList().then(statistics);
 }
 
-function statistics(tokens: TokenBalance[]) {
+const fetchMETHtoETH = withCache(fetchMETH, 60 * 60 * 1000);
+async function statistics(tokens: TokenBalance[]) {
   // merge amount by id
   const tokenMap = tokens.reduce(
     (acc, { id, amount, price, logo_url }) => {
@@ -269,15 +278,36 @@ function statistics(tokens: TokenBalance[]) {
     },
   );
 
+  const mETHtoETH = await fetchMETHtoETH();
+
   // merge MNT and ETH
   const mergeTokens = () => {
     const tokenBySymbol = _.keyBy(tokenBalance, 'symbol');
-    const { MNT, WMNT, ETH, WETH, stETH, USDe, sUSDe, ...rest } = tokenBySymbol;
+    const { EigenLayerETH, MNT, WMNT, ETH, WETH, stETH, USDe, sUSDe, ...rest } =
+      tokenBySymbol;
     MNT.amount += WMNT.amount;
     ETH.amount += WETH.amount + stETH.amount;
     USDe.amount += sUSDe.amount;
 
-    return [MNT, ETH, USDe, ...Object.values(rest)];
+    EigenLayerETH.amount = EigenLayerETH.amount / Number(mETHtoETH);
+
+    return [
+      _.assign(
+        EigenLayerETH,
+        _.pick(
+          rest.mETH,
+          'price',
+          'is_core',
+          'is_wallet',
+          'decimals',
+          'symbol',
+        ),
+      ),
+      MNT,
+      ETH,
+      USDe,
+      ...Object.values(rest),
+    ];
   };
 
   const tokensWithValue = mergeTokens().map((t) => ({
@@ -300,24 +330,40 @@ async function fetchTokenList(
   walletAddress: string,
   chain: 'eth' | 'mnt',
 ): Promise<TokenBalance[]> {
-  const tokens = await fetchJSON<TokenBalance[]>(
+  const tokens = await fetchDebank<TokenBalance[]>(
     `/user/token_list?id=${walletAddress}&chain_id=${chain}&is_all=true`,
   );
   const includeProtocolIds = new Set(tokens.map((t) => t.protocol_id));
   type Protocol = {
     id: string;
+    logo_url?: string;
     portfolio_item_list: { asset_token_list?: TokenBalance[] }[];
     has_supported_portfolio: boolean;
   };
-  const protocolTokens = await fetchJSON<Protocol[]>(
+  const protocolTokens = await fetchDebank<Protocol[]>(
     `/user/complex_protocol_list?id=${walletAddress}&chain_id=${chain}`,
   ).then((protocols) =>
     protocols
       .filter((p) => !includeProtocolIds.has(p.id))
-      .flatMap(({ portfolio_item_list, has_supported_portfolio }) =>
-        has_supported_portfolio
-          ? portfolio_item_list.flatMap((i) => i.asset_token_list ?? [])
-          : [],
+      .flatMap(
+        ({ id, logo_url, portfolio_item_list, has_supported_portfolio }) => {
+          if (!has_supported_portfolio) return [];
+          if (id === 'eigenlayer') {
+            return portfolio_item_list
+              .flatMap((i) => i.asset_token_list ?? [])
+              .map((t) => {
+                if (t.symbol !== 'ETH') return t;
+                return {
+                  ...t,
+                  id: 'eigen-layer-eth',
+                  name: 'EigenLayer',
+                  symbol: 'EigenLayerETH',
+                  logo_url,
+                } as TokenBalance;
+              });
+          }
+          return portfolio_item_list.flatMap((i) => i.asset_token_list ?? []);
+        },
       ),
   );
 
@@ -329,7 +375,56 @@ async function fetchTokenList(
     .map((t) => ({ ...t, walletAddress }));
 }
 
-function fetchJSON<T = unknown>(path: string): Promise<T> {
+function fetchMETH<T = unknown>(): Promise<T> {
+  return fetch('https://meth.mantle.xyz/api/stats/apy?limit=1&offset=0', {
+    method: 'GET',
+    headers: {
+      accept: 'application/json',
+    },
+  }).then((res) =>
+    res.json().then((data) => {
+      if (res.ok) return data.data[0].METHtoETH;
+
+      throw new ExternalAPICallError(
+        'mETH_API',
+        `[${data.code}] ${data.message}`,
+      );
+    }),
+  );
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function withCache<F extends (...args: any[]) => Promise<any>>(
+  task: F,
+  cacheTime: number,
+): F {
+  let cache: ReturnType<F>;
+  let updatedAt = 0;
+  let taskPromise: Promise<void> | undefined;
+
+  return (async (...params) => {
+    if (!taskPromise && Date.now() - updatedAt > cacheTime) {
+      taskPromise = task(...params)
+        .then((res) => {
+          cache = res;
+          updatedAt = Date.now();
+        })
+        .catch((e) => {
+          console.error(e);
+          if (!cache) throw e;
+        })
+        .finally(() => {
+          taskPromise = undefined;
+        });
+    }
+
+    if (!cache) await taskPromise!;
+
+    return cache;
+  }) as F;
+}
+
+function fetchDebank<T = unknown>(path: string): Promise<T> {
   return fetch(`${DEBANK_API_BASE}${path}`, {
     method: 'GET',
     headers: {
