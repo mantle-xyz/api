@@ -97,7 +97,7 @@ const eth = {
 
 const EigenLayerETH = {
   symbol: 'EigenLayerETH',
-  name: 'EigenLayerETH',
+  name: 'EigenLayer',
   decimals: 18,
   l1Address: 'eigen-layer-eth',
 };
