@@ -296,47 +296,40 @@ function statistics(tokens: TokenBalance[]) {
 
 const DEBANK_API_BASE = 'https://pro-openapi.debank.com/v1';
 
-function fetchTokenList(
+async function fetchTokenList(
   walletAddress: string,
   chain: 'eth' | 'mnt',
-): PromiseLike<TokenBalance[]> {
-  const protocolTokensPromise = fetchJSON(
-    `/user/complex_protocol_list?id=${walletAddress}&chain_id=${chain}`,
-  ).then((protocols) =>
-    protocols.flatMap(
-      ({
-        portfolio_item_list,
-        has_supported_portfolio,
-      }: {
-        portfolio_item_list: { asset_token_list?: TokenBalance[] }[];
-        has_supported_portfolio: boolean;
-      }) =>
-        has_supported_portfolio
-          ? portfolio_item_list.flatMap((i) =>
-              i.asset_token_list && i.asset_token_list.length > 1
-                ? i.asset_token_list
-                : [],
-            )
-          : [],
-    ),
-  );
-
-  const tokensPromise = fetchJSON(
+): Promise<TokenBalance[]> {
+  const tokens = await fetchJSON<TokenBalance[]>(
     `/user/token_list?id=${walletAddress}&chain_id=${chain}&is_all=true`,
   );
-  return Promise.all([tokensPromise, protocolTokensPromise])
-    .then((r) => r.flat())
-    .then((data) =>
-      data
-        .filter(
-          (t: { symbol?: string; amount: number; price: number }) =>
-            t.symbol && t.amount && t.price,
-        )
-        .map((t) => ({ ...t, walletAddress })),
-    );
+  const includeProtocolIds = new Set(tokens.map((t) => t.protocol_id));
+  type Protocol = {
+    id: string;
+    portfolio_item_list: { asset_token_list?: TokenBalance[] }[];
+    has_supported_portfolio: boolean;
+  };
+  const protocolTokens = await fetchJSON<Protocol[]>(
+    `/user/complex_protocol_list?id=${walletAddress}&chain_id=${chain}`,
+  ).then((protocols) =>
+    protocols
+      .filter((p) => !includeProtocolIds.has(p.id))
+      .flatMap(({ portfolio_item_list, has_supported_portfolio }) =>
+        has_supported_portfolio
+          ? portfolio_item_list.flatMap((i) => i.asset_token_list ?? [])
+          : [],
+      ),
+  );
+
+  return [...tokens, ...protocolTokens]
+    .filter(
+      (t: { symbol?: string; amount: number; price: number }) =>
+        t.symbol && t.amount && t.price,
+    )
+    .map((t) => ({ ...t, walletAddress }));
 }
 
-function fetchJSON(path: string) {
+function fetchJSON<T = unknown>(path: string): Promise<T> {
   return fetch(`${DEBANK_API_BASE}${path}`, {
     method: 'GET',
     headers: {
