@@ -7,9 +7,9 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: "/api/:path((?!v1).*)",
+        source: '/api/:path((?!v[1,2]).*)',
 
-        destination: "/api/v1/:path*",
+        destination: '/api/v1/:path*',
         permanent: false,
       },
     ];

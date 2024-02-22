@@ -1,0 +1,143 @@
+openapi: 3.0.0
+info:
+  title: Converted from treasury-token.swagger.yaml with typeconv
+  version: '1'
+  x-id: treasury-token.swagger.yaml
+  x-comment: >-
+    Generated from types/treasury-token.ts by core-types-json-schema
+    (https://github.com/grantila/core-types-json-schema) on behalf of typeconv
+    (https://github.com/grantila/typeconv)
+paths: {}
+components:
+  schemas:
+    TreasuryTokenBalance:
+      properties:
+        symbol:
+          title: TreasuryTokenCommon.symbol
+          type: string
+        logo_url:
+          title: TreasuryTokenCommon.logo_url
+          type: string
+        price:
+          title: TreasuryTokenCommon.price
+          type: number
+        amount:
+          title: TreasuryTokenCommon.amount
+          type: number
+        id:
+          title: id
+          type: string
+        chain:
+          title: chain
+          type: string
+        name:
+          title: name
+          type: string
+        display_symbol:
+          title: display_symbol
+          type: string
+        optimized_symbol:
+          title: optimized_symbol
+          type: string
+        decimals:
+          title: decimals
+          type: number
+        protocol_id:
+          title: protocol_id
+          type: string
+        is_core:
+          title: is_core
+          type: boolean
+        is_wallet:
+          title: is_wallet
+          type: boolean
+        time_at:
+          title: time_at
+          type: number
+        raw_amount:
+          title: raw_amount
+          type: number
+      required:
+        - symbol
+        - price
+        - amount
+        - id
+        - chain
+        - is_core
+        - is_wallet
+        - time_at
+        - raw_amount
+      additionalProperties: false
+      title: TreasuryTokenBalance, TreasuryTokenCommon
+      type: object
+    StatisticToken:
+      properties:
+        symbol:
+          title: TreasuryTokenCommon.symbol
+          type: string
+        logo_url:
+          title: TreasuryTokenCommon.logo_url
+          type: string
+        price:
+          title: TreasuryTokenCommon.price
+          type: number
+        amount:
+          title: TreasuryTokenCommon.amount
+          type: number
+        value:
+          title: value
+          type: number
+        name:
+          title: name
+          type: string
+        percent:
+          title: percent
+          type: string
+      required:
+        - symbol
+        - price
+        - amount
+        - value
+        - name
+        - percent
+      additionalProperties: false
+      title: StatisticToken, TreasuryTokenCommon
+      type: object
+    TreasuryStatistic:
+      properties:
+        total:
+          title: TreasuryStatistic.total
+          type: number
+        tokens:
+          items:
+            $ref: '#/components/schemas/StatisticToken'
+            title: TreasuryStatistic.tokens.[]
+          title: TreasuryStatistic.tokens
+          type: array
+      required:
+        - total
+        - tokens
+      additionalProperties: false
+      title: TreasuryStatistic
+      type: object
+    TreasuryTokenCommon:
+      properties:
+        symbol:
+          title: TreasuryTokenCommon.symbol
+          type: string
+        logo_url:
+          title: TreasuryTokenCommon.logo_url
+          type: string
+        price:
+          title: TreasuryTokenCommon.price
+          type: number
+        amount:
+          title: TreasuryTokenCommon.amount
+          type: number
+      required:
+        - symbol
+        - price
+        - amount
+      additionalProperties: false
+      title: TreasuryTokenCommon
+      type: object
