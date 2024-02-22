@@ -23,6 +23,14 @@ const coreWallets = [
   '0x1a743BD810dde05fa897Ec41FE4D42068F7fD6b2',
   // MTreasuryL1 - RB1	Eth
   '0x164Cf077D3004bC1f26E7A46Ad8fA54df4449E3F',
+  // MTreasuryL1-LPE1 ETH
+  '0xA5b79541548ef2D48921F63ca72e4954e50a4a74',
+  // MTreasuryL2-RB2 Mantle
+  '0x87C62C3F9BDFc09200bCF1cbb36F233A65CeF3e6',
+  // MTreasuryL2-LPM1 Mantle
+  '0x992b65556d330219e7e75C43273535847fEee262',
+  // MTreasuryL2-FF1 Mantle
+  '0xcD9Dab9Fa5B55EE4569EdC402d3206123B1285F4',
 ] as const;
 
 const ecspWallets = [
