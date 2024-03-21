@@ -13,8 +13,9 @@ import {
   MANTLE_TREASURY_ADDRESS,
   TOKEN_CONTRACT_ADDRESS,
 } from "config/general";
-import { createPublicClient, formatUnits, http } from "viem";
-import { mainnet } from "viem/chains";
+import { createPublicClient, defineChain, formatUnits, http } from 'viem';
+import { mainnet } from 'viem/chains';
+import _ from 'lodash';
 
 /**
  * @swagger
@@ -48,7 +49,7 @@ import { mainnet } from "viem/chains";
  */
 const CACHE_TIME = 1800;
 const alchemySettings = {
-  apiKey: "", // Replace with your Alchemy API Key.
+  apiKey: '', // Replace with your Alchemy API Key.
   network: Network.ETH_MAINNET, // Replace with your network.
 };
 
@@ -61,7 +62,7 @@ const getTotalSupply = async (alchemy?: Alchemy) => {
     transport: http(
       `https://eth-mainnet.g.alchemy.com/v2/${
         alchemy?.config.apiKey || process.env.ALCHEMY_API_KEY
-      }`
+      }`,
     ),
   });
 
@@ -71,11 +72,11 @@ const getTotalSupply = async (alchemy?: Alchemy) => {
 
   const abi = <const>[
     {
-      name: "totalSupply",
-      type: "function",
-      stateMutability: "view",
+      name: 'totalSupply',
+      type: 'function',
+      stateMutability: 'view',
       inputs: [],
-      outputs: [{ type: "uint256" }],
+      outputs: [{ type: 'uint256' }],
     },
   ];
   // [
@@ -85,7 +86,7 @@ const getTotalSupply = async (alchemy?: Alchemy) => {
   // const erc20 = new Contract(TOKEN_CONTRACT_ADDRESS, abi, provider);
   const erc20 = await client.readContract({
     address: TOKEN_CONTRACT_ADDRESS,
-    functionName: "totalSupply",
+    functionName: 'totalSupply',
     abi: abi,
   });
 
@@ -98,7 +99,7 @@ const getCirculatingSupply = (
   mantleCoreTotal: number,
   treasuryBalanceTotal: number,
   treasuryLPTokenTotal: number,
-  lockedTotal: number
+  lockedTotal: number,
 ) => {
   // take any BIT not in the circulating supply away from totalSupply
   return `${
@@ -110,9 +111,81 @@ const getCirculatingSupply = (
   }`;
 };
 
+function getTreasuryBalance(alchemyKey: string) {
+  const l1Wallets = [
+    '0x78605Df79524164911C144801f41e9811B7DB73D',
+    '0xCa264A4Adf80d3c390233de135468A914f99B6a5',
+    '0xf0e91a74cb053d79b39837E1cfba947D0c98dd93',
+    '0x1a743BD810dde05fa897Ec41FE4D42068F7fD6b2',
+    '0x164Cf077D3004bC1f26E7A46Ad8fA54df4449E3F',
+    '0xA5b79541548ef2D48921F63ca72e4954e50a4a74',
+  ] as const;
+  const l2Wallets = [
+    '0x94FEC56BBEcEaCC71c9e61623ACE9F8e1B1cf473',
+    '0x87C62C3F9BDFc09200bCF1cbb36F233A65CeF3e6',
+    '0x992b65556d330219e7e75C43273535847fEee262',
+    '0xcD9Dab9Fa5B55EE4569EdC402d3206123B1285F4',
+  ] as const;
+  const l1Client = createPublicClient({
+    chain: mainnet,
+    transport: http(`https://eth-mainnet.g.alchemy.com/v2/${alchemyKey}`),
+  });
+
+  const l2Client = createPublicClient({
+    chain: defineChain({
+      id: 5000,
+      name: 'Mantle Mainnet',
+      network: 'Mantle Mainnet',
+      nativeCurrency: {
+        name: 'Mantle',
+        symbol: 'MNT',
+        decimals: 18,
+      },
+      rpcUrls: {
+        default: {
+          http: [process.env.L1_RPC || 'https://rpc.mantle.xyz'],
+        },
+        public: {
+          http: [process.env.L1_RPC || 'https://rpc.mantle.xyz'],
+        },
+      },
+      blockExplorerUrls: ['https://explorer.mantle.xyz/'],
+    }),
+    transport: http(process.env.L2_RPC),
+  });
+
+  const abi = [
+    {
+      inputs: [{ internalType: 'address', name: 'account', type: 'address' }],
+      name: 'balanceOf',
+      outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
+      stateMutability: 'view',
+      type: 'function',
+    },
+  ] as const;
+
+  return Promise.all([
+    ...l1Wallets.map((address) =>
+      l1Client.readContract({
+        address: TOKEN_CONTRACT_ADDRESS,
+        functionName: 'balanceOf',
+        abi: abi,
+        args: [address],
+      }),
+    ),
+
+    ...l2Wallets.map((address) => l2Client.getBalance({ address })),
+  ]).then((amounts) =>
+    formatUnits(
+      amounts.reduce((p, c) => p + c),
+      18,
+    ),
+  );
+}
+
 // returns the actual balance held within the TokenBalancesResponse
 const getBalance = (balance: TokenBalancesResponse) => {
-  return parseFloat(balance.tokenBalances[0].tokenBalance || "0");
+  return parseFloat(balance.tokenBalances[0].tokenBalance || '0');
 };
 
 // retrieve balance data for TOKEN_CONTRACT_ADDRESS given EOA address
@@ -127,11 +200,11 @@ const getBalances = async (alchemy: Alchemy, address: string) => {
       // format to ordinary value (to BIT)
       balance.tokenBalance = formatUnits(
         BigInt(balance.tokenBalance || 0),
-        18
+        18,
       ).toString();
 
       return balance;
-    }
+    },
   );
 
   return balances;
@@ -149,6 +222,7 @@ export const dataHandler = async (alchemyApi: string) => {
     mantleCoreData,
     treasuryBalanceData,
     treasuryLPBalanceData,
+    treasuryBalance,
     // collect up all other addresses into an array (this represents anything passed in BITDAO_LOCKED_ADDRESSES)
     ...lockedBalancesData
   ] = await Promise.all([
@@ -156,9 +230,10 @@ export const dataHandler = async (alchemyApi: string) => {
     getBalances(alchemy, MANTLE_CORE_WALLET_ADDRESS),
     getBalances(alchemy, MANTLE_TREASURY_ADDRESS),
     getBalances(alchemy, BITDAO_LP_WALLET_ADDRESS),
+    getTreasuryBalance(alchemy.config.apiKey),
     // get balance from each of the locked addresses
     ...BITDAO_LOCKED_ADDRESSES.map(async (address) =>
-      getBalances(alchemy, address)
+      getBalances(alchemy, address),
     ),
   ]);
 
@@ -171,7 +246,7 @@ export const dataHandler = async (alchemyApi: string) => {
   const lockedTotal = lockedBalancesData.reduce(
     (total: number, balance: TokenBalancesResponse) =>
       total + getBalance(balance),
-    0
+    0,
   );
 
   // construct results
@@ -187,13 +262,16 @@ export const dataHandler = async (alchemyApi: string) => {
     treasuryLPTokenTotal: `${treasuryLPTokenTotal}`,
     lockedTotal: `${lockedTotal}`,
     // totalSupply with all locked/burned totals subtracted
-    circulatingSupply: getCirculatingSupply(
-      totalSupply,
-      mantleCoreTotal,
-      treasuryBalanceTotal,
-      treasuryLPTokenTotal,
-      lockedTotal
-    ),
+    circulatingSupply: (
+      parseFloat(totalSupply) - parseFloat(treasuryBalance)
+    ).toString(),
+    // circulatingSupply: getCirculatingSupply(
+    //   totalSupply,
+    //   mantleCoreTotal,
+    //   treasuryBalanceTotal,
+    //   treasuryLPTokenTotal,
+    //   lockedTotal,
+    // ),
   };
 };
 
