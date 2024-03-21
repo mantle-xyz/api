@@ -15,7 +15,6 @@ import {
 } from "config/general";
 import { createPublicClient, defineChain, formatUnits, http } from 'viem';
 import { mainnet } from 'viem/chains';
-import _ from 'lodash';
 
 /**
  * @swagger
