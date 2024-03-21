@@ -93,6 +93,7 @@ const getTotalSupply = async (alchemy?: Alchemy) => {
 };
 
 // subtract locked funds from totalSupplu
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const getCirculatingSupply = (
   totalSupply: string,
   mantleCoreTotal: number,
