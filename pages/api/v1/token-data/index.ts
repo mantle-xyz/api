@@ -143,15 +143,15 @@ function getTreasuryBalance(alchemyKey: string) {
       },
       rpcUrls: {
         default: {
-          http: [process.env.L1_RPC || 'https://rpc.mantle.xyz'],
+          http: [process.env.L2_RPC || 'https://rpc.mantle.xyz'],
         },
         public: {
-          http: [process.env.L1_RPC || 'https://rpc.mantle.xyz'],
+          http: [process.env.L2_RPC || 'https://rpc.mantle.xyz'],
         },
       },
       blockExplorerUrls: ['https://explorer.mantle.xyz/'],
     }),
-    transport: http(process.env.L2_RPC),
+    transport: http(process.env.L2_RPC || 'https://rpc.mantle.xyz'),
   });
 
   const abi = [
