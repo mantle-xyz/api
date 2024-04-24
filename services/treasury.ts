@@ -295,12 +295,12 @@ const EigenLayerETH = {
        WETH,
        stETH,
        USDe,
-       sUSDe,
+       // sUSDe,
        ...rest
      } = tokenBySymbol;
      MNT.amount += WMNT.amount;
      ETH.amount += WETH.amount + stETH.amount;
-     USDe.amount += sUSDe.amount;
+     // USDe.amount += sUSDe.amount;
 
      EigenLayerETH.amount = EigenLayerETH.amount / Number(mETHtoETH);
 
@@ -347,8 +347,11 @@ const EigenLayerETH = {
    walletAddress: string,
    chain: 'eth' | 'mnt',
  ): Promise<TokenBalance[]> {
-   const tokens = await fetchDebank<TokenBalance[]>(
+   const allTokens = await fetchDebank<TokenBalance[]>(
      `/user/token_list?id=${walletAddress}&chain_id=${chain}&is_all=true`,
+   );
+   const tokens = allTokens.filter(
+     (t) => ['mETH', 'sUSDe'].includes(t.symbol) || t.is_wallet,
    );
 
    type Protocol = {
@@ -365,15 +368,36 @@ const EigenLayerETH = {
          index: null;
          time_at: 1704821171;
        };
+       detail?: { description?: string };
+       name: string;
      }[];
      has_supported_portfolio: boolean;
    };
    const protocolTokens = await fetchDebank<Protocol[]>(
      `/user/complex_protocol_list?id=${walletAddress}&chain_id=${chain}`,
-   ).then((protocols) =>
-     protocols.flatMap(
-       ({ id, logo_url, portfolio_item_list, has_supported_portfolio }) => {
+   ).then((protocols) => {
+     // if (
+     //   walletAddress.toLocaleLowerCase() ===
+     //   '0x1a743bd810dde05fa897ec41fe4d42068f7fd6b2'
+     // ) {
+     //   console.log(JSON.stringify(protocols, null, 2), allTokens);
+     // }
+
+     return protocols.flatMap(
+       ({
+         id,
+         logo_url,
+         portfolio_item_list: allItems,
+         has_supported_portfolio,
+       }) => {
          if (!has_supported_portfolio) return [];
+
+         const portfolio_item_list = allItems.filter(
+           (i) =>
+             !['mETH', 'sUSDe'].includes(i.detail?.description as string) ||
+             i.name !== 'Staked',
+         );
+
          if (
            walletAddress.toLocaleLowerCase() ===
              '0x1a743bd810dde05fa897ec41fe4d42068f7fd6b2' &&
@@ -390,7 +414,6 @@ const EigenLayerETH = {
                    id: 'ethena-farming-usde',
                    name: USDeLocked.name,
                    symbol: USDeLocked.symbol,
-                   logo_url,
                  } as TokenBalance;
                }
 
@@ -414,8 +437,8 @@ const EigenLayerETH = {
          }
          return portfolio_item_list.flatMap((i) => i.asset_token_list ?? []);
        },
-     ),
-   );
+     );
+   });
 
    return [...tokens, ...protocolTokens]
      .filter(
