@@ -3,9 +3,9 @@ import type {
   TreasuryStatistic,
   TreasuryTokenBalance as TokenBalance,
 } from '@/types/treasury-token';
-import { sleep } from '@/utils';
 import fetchTreasuryWallets from '@/utils/governance-wallets';
 import _ from 'lodash';
+import pThrottle from 'p-throttle';
 
 /**
  * - MNT: includes L1 MNT, L2 MNT, L2 WMNT, DeFi: UniV3LP MNT
@@ -169,7 +169,6 @@ export async function fetchTreasuryTokenListWithoutCache(): Promise<
   const eth = await Promise.all(
     allWallets.map((w) => fetchTokenList(w, 'eth')),
   );
-  await sleep(1000);
   const nmt = await Promise.all(
     allWallets.map((w) => fetchTokenList(w, 'mnt')),
   );
@@ -182,202 +181,202 @@ export async function fetchTreasuryTokenListWithoutCache(): Promise<
   // ).then((res) => res.flat());
 }
 
- export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {
-   return fetchTreasuryTokenList().then(statistics);
- }
+export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {
+  return fetchTreasuryTokenList().then(statistics);
+}
 
- const fetchMETHtoETH = withCache(fetchMETH, 60 * 60 * 1000);
- async function statistics(tokens: TokenBalance[]) {
-   // merge amount by id
-   const tokenMap = tokens.reduce(
-     (acc, { id, amount, price, logo_url }) => {
-       id = id.toLowerCase();
+const fetchMETHtoETH = withCache(fetchMETH, 60 * 60 * 1000);
+async function statistics(tokens: TokenBalance[]) {
+  // merge amount by id
+  const tokenMap = tokens.reduce(
+    (acc, { id, amount, price, logo_url }) => {
+      id = id.toLowerCase();
 
-       if (acc[id]) acc[id].amount += amount;
-       else acc[id] = { amount, price, logo_url };
+      if (acc[id]) acc[id].amount += amount;
+      else acc[id] = { amount, price, logo_url };
 
-       return acc;
-     },
-     {} as Record<string, Pick<TokenBalance, 'amount' | 'price' | 'logo_url'>>,
-   );
+      return acc;
+    },
+    {} as Record<string, Pick<TokenBalance, 'amount' | 'price' | 'logo_url'>>,
+  );
 
-   // merge l1 and l2 token amount
-   const tokenBalance = wellKnownTokens.map(
-     ({ l1Address, l2Address, symbol, name }) => {
-       const t1 = tokenMap[l1Address ?? ''];
-       const t2 = tokenMap[l2Address ?? ''];
-       const amount = (t1?.amount || 0) + (t2?.amount || 0);
-       const t = t1 || t2 || { price: 0 };
-       return { ...t, amount, symbol, name };
-     },
-   );
+  // merge l1 and l2 token amount
+  const tokenBalance = wellKnownTokens.map(
+    ({ l1Address, l2Address, symbol, name }) => {
+      const t1 = tokenMap[l1Address ?? ''];
+      const t2 = tokenMap[l2Address ?? ''];
+      const amount = (t1?.amount || 0) + (t2?.amount || 0);
+      const t = t1 || t2 || { price: 0 };
+      return { ...t, amount, symbol, name };
+    },
+  );
 
-   const mETHtoETH = await fetchMETHtoETH();
+  const mETHtoETH = await fetchMETHtoETH();
 
-   // merge MNT and ETH
-   const mergeTokens = () => {
-     const tokenBySymbol = _.keyBy(tokenBalance, 'symbol');
-     const {
-       EigenLayerETH,
-       USDeLocked,
-       MNT,
-       WMNT,
-       ETH,
-       WETH,
-       stETH,
-       USDe,
-       // sUSDe,
-       ...rest
-     } = tokenBySymbol;
-     MNT.amount += WMNT.amount;
-     ETH.amount += WETH.amount + stETH.amount;
-     // USDe.amount += sUSDe.amount;
+  // merge MNT and ETH
+  const mergeTokens = () => {
+    const tokenBySymbol = _.keyBy(tokenBalance, 'symbol');
+    const {
+      EigenLayerETH,
+      USDeLocked,
+      MNT,
+      WMNT,
+      ETH,
+      WETH,
+      stETH,
+      USDe,
+      // sUSDe,
+      ...rest
+    } = tokenBySymbol;
+    MNT.amount += WMNT.amount;
+    ETH.amount += WETH.amount + stETH.amount;
+    // USDe.amount += sUSDe.amount;
 
-     EigenLayerETH.amount = EigenLayerETH.amount / Number(mETHtoETH);
+    EigenLayerETH.amount = EigenLayerETH.amount / Number(mETHtoETH);
 
-     return [
-       _.assign(
-         EigenLayerETH,
-         _.pick(
-           rest.mETH,
-           'price',
-           'is_core',
-           'is_wallet',
-           'decimals',
-           'symbol',
-         ),
-       ),
-       {
-         ...USDeLocked,
-         symbol: USDe.symbol,
-       },
-       MNT,
-       ETH,
-       USDe,
-       ...Object.values(rest),
-     ];
-   };
+    return [
+      _.assign(
+        EigenLayerETH,
+        _.pick(
+          rest.mETH,
+          'price',
+          'is_core',
+          'is_wallet',
+          'decimals',
+          'symbol',
+        ),
+      ),
+      {
+        ...USDeLocked,
+        symbol: USDe.symbol,
+      },
+      MNT,
+      ETH,
+      USDe,
+      ...Object.values(rest),
+    ];
+  };
 
-   const tokensWithValue = mergeTokens().map((t) => ({
-     ...t,
-     value: t.amount * t.price,
-   }));
-   const total = _.sumBy(tokensWithValue, 'value');
-   const tokensWithPercent = _.sortBy(tokensWithValue, 'value')
-     .reverse()
-     .map((t) => ({
-       ...t,
-       percent: ((t.value * 100) / total).toFixed(2) + '%',
-     }));
-   return { total, tokens: tokensWithPercent };
- }
+  const tokensWithValue = mergeTokens().map((t) => ({
+    ...t,
+    value: t.amount * t.price,
+  }));
+  const total = _.sumBy(tokensWithValue, 'value');
+  const tokensWithPercent = _.sortBy(tokensWithValue, 'value')
+    .reverse()
+    .map((t) => ({
+      ...t,
+      percent: ((t.value * 100) / total).toFixed(2) + '%',
+    }));
+  return { total, tokens: tokensWithPercent };
+}
 
- const DEBANK_API_BASE = 'https://pro-openapi.debank.com/v1';
+const DEBANK_API_BASE = 'https://pro-openapi.debank.com/v1';
 
- async function fetchTokenList(
-   walletAddress: string,
-   chain: 'eth' | 'mnt',
- ): Promise<TokenBalance[]> {
-   const allTokens = await fetchDebank<TokenBalance[]>(
-     `/user/token_list?id=${walletAddress}&chain_id=${chain}&is_all=true`,
-   );
-   const tokens = allTokens.filter(
-     (t) => ['mETH', 'sUSDe'].includes(t.symbol) || t.is_wallet,
-   );
+async function fetchTokenList(
+  walletAddress: string,
+  chain: 'eth' | 'mnt',
+): Promise<TokenBalance[]> {
+  const allTokens = await fetchDebank<TokenBalance[]>(
+    `/user/token_list?id=${walletAddress}&chain_id=${chain}&is_all=true`,
+  );
+  const tokens = allTokens.filter(
+    (t) => ['mETH', 'sUSDe'].includes(t.symbol) || t.is_wallet,
+  );
 
-   type Protocol = {
-     id: string;
-     logo_url?: string;
-     portfolio_item_list: {
-       asset_token_list?: TokenBalance[];
-       pool?: {
-         id: '0x8707f238936c12c309bfc2b9959c35828acfc512';
-         chain: 'eth';
-         project_id: 'ethena';
-         adapter_id?: 'ethena_farming';
-         controller: '0x8707f238936c12c309bfc2b9959c35828acfc512';
-         index: null;
-         time_at: 1704821171;
-       };
-       detail?: { description?: string };
-       name: string;
-     }[];
-     has_supported_portfolio: boolean;
-   };
-   const protocolTokens = await fetchDebank<Protocol[]>(
-     `/user/complex_protocol_list?id=${walletAddress}&chain_id=${chain}`,
-   ).then((protocols) => {
-     // if (
-     //   walletAddress.toLocaleLowerCase() ===
-     //   '0x1a743bd810dde05fa897ec41fe4d42068f7fd6b2'
-     // ) {
-     //   console.log(JSON.stringify(protocols, null, 2), allTokens);
-     // }
+  type Protocol = {
+    id: string;
+    logo_url?: string;
+    portfolio_item_list: {
+      asset_token_list?: TokenBalance[];
+      pool?: {
+        id: '0x8707f238936c12c309bfc2b9959c35828acfc512';
+        chain: 'eth';
+        project_id: 'ethena';
+        adapter_id?: 'ethena_farming';
+        controller: '0x8707f238936c12c309bfc2b9959c35828acfc512';
+        index: null;
+        time_at: 1704821171;
+      };
+      detail?: { description?: string };
+      name: string;
+    }[];
+    has_supported_portfolio: boolean;
+  };
+  const protocolTokens = await fetchDebank<Protocol[]>(
+    `/user/complex_protocol_list?id=${walletAddress}&chain_id=${chain}`,
+  ).then((protocols) => {
+    // if (
+    //   walletAddress.toLocaleLowerCase() ===
+    //   '0x1a743bd810dde05fa897ec41fe4d42068f7fd6b2'
+    // ) {
+    //   console.log(JSON.stringify(protocols, null, 2), allTokens);
+    // }
 
-     return protocols.flatMap(
-       ({
-         id,
-         logo_url,
-         portfolio_item_list: allItems,
-         has_supported_portfolio,
-       }) => {
-         if (!has_supported_portfolio) return [];
+    return protocols.flatMap(
+      ({
+        id,
+        logo_url,
+        portfolio_item_list: allItems,
+        has_supported_portfolio,
+      }) => {
+        if (!has_supported_portfolio) return [];
 
-         const portfolio_item_list = allItems.filter(
-           (i) =>
-             !['mETH', 'sUSDe'].includes(i.detail?.description as string) ||
-             i.name !== 'Staked',
-         );
+        const portfolio_item_list = allItems.filter(
+          (i) =>
+            !['mETH', 'sUSDe'].includes(i.detail?.description as string) ||
+            i.name !== 'Staked',
+        );
 
-         if (
-           walletAddress.toLocaleLowerCase() ===
-             '0x1a743bd810dde05fa897ec41fe4d42068f7fd6b2' &&
-           id === 'ethena'
-         ) {
-           return portfolio_item_list.flatMap((i) =>
-             (i.asset_token_list ?? []).map((t) => {
-               if (
-                 t.symbol === 'USDe' &&
-                 i.pool?.adapter_id === 'ethena_farming'
-               ) {
-                 return {
-                   ...t,
-                   id: 'ethena-farming-usde',
-                   name: USDeLocked.name,
-                   symbol: USDeLocked.symbol,
-                 } as TokenBalance;
-               }
+        if (
+          walletAddress.toLocaleLowerCase() ===
+            '0x1a743bd810dde05fa897ec41fe4d42068f7fd6b2' &&
+          id === 'ethena'
+        ) {
+          return portfolio_item_list.flatMap((i) =>
+            (i.asset_token_list ?? []).map((t) => {
+              if (
+                t.symbol === 'USDe' &&
+                i.pool?.adapter_id === 'ethena_farming'
+              ) {
+                return {
+                  ...t,
+                  id: 'ethena-farming-usde',
+                  name: USDeLocked.name,
+                  symbol: USDeLocked.symbol,
+                } as TokenBalance;
+              }
 
-               return t;
-             }),
-           );
-         }
-         if (id === 'eigenlayer') {
-           return portfolio_item_list
-             .flatMap((i) => i.asset_token_list ?? [])
-             .map((t) => {
-               if (t.symbol !== 'ETH') return t;
-               return {
-                 ...t,
-                 id: 'eigen-layer-eth',
-                 name: 'EigenLayer',
-                 symbol: 'EigenLayerETH',
-                 logo_url,
-               } as TokenBalance;
-             });
-         }
-         return portfolio_item_list.flatMap((i) => i.asset_token_list ?? []);
-       },
-     );
-   });
+              return t;
+            }),
+          );
+        }
+        if (id === 'eigenlayer') {
+          return portfolio_item_list
+            .flatMap((i) => i.asset_token_list ?? [])
+            .map((t) => {
+              if (t.symbol !== 'ETH') return t;
+              return {
+                ...t,
+                id: 'eigen-layer-eth',
+                name: 'EigenLayer',
+                symbol: 'EigenLayerETH',
+                logo_url,
+              } as TokenBalance;
+            });
+        }
+        return portfolio_item_list.flatMap((i) => i.asset_token_list ?? []);
+      },
+    );
+  });
 
-   return [...tokens, ...protocolTokens]
-     .filter(
-       (t: { symbol?: string; amount: number; price: number }) =>
-         t.symbol && t.amount && t.price,
-     )
-     .map((t) => ({ ...t, walletAddress }));
- }
+  return [...tokens, ...protocolTokens]
+    .filter(
+      (t: { symbol?: string; amount: number; price: number }) =>
+        t.symbol && t.amount && t.price,
+    )
+    .map((t) => ({ ...t, walletAddress }));
+}
 
 function fetchMETH<T = unknown>(): Promise<T> {
   return fetch('https://meth.mantle.xyz/api/stats/apy?limit=1&offset=0', {
@@ -428,7 +427,10 @@ function withCache<F extends (...args: any[]) => Promise<any>>(
   }) as F;
 }
 
-function fetchDebank<T = unknown>(path: string): Promise<T> {
+const throttle = pThrottle({ limit: 50, interval: 1000 })(() => {});
+
+async function fetchDebank<T = unknown>(path: string): Promise<T> {
+  await throttle();
   return fetch(`${DEBANK_API_BASE}${path}`, {
     method: 'GET',
     headers: {
