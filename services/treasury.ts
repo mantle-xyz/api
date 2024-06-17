@@ -169,10 +169,10 @@ export async function fetchTreasuryTokenListWithoutCache(): Promise<
   const eth = await Promise.all(
     allWallets.map((w) => fetchTokenList(w, 'eth')),
   );
-  const nmt = await Promise.all(
+  const mnt = await Promise.all(
     allWallets.map((w) => fetchTokenList(w, 'mnt')),
   );
-  return [...eth, ...nmt].flat();
+  return [...eth, ...mnt].flat();
   // return Promise.all(
   //   allWallets.flatMap((w) => [
   //     fetchTokenList(w, 'eth'),
