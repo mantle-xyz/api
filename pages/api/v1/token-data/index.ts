@@ -119,6 +119,7 @@ function getTreasuryBalance(alchemyKey: string) {
     '0x1a743BD810dde05fa897Ec41FE4D42068F7fD6b2',
     '0x164Cf077D3004bC1f26E7A46Ad8fA54df4449E3F',
     '0xA5b79541548ef2D48921F63ca72e4954e50a4a74',
+    '0x34cAfA03D9750124102059eE35619A9C5D5aF7df',
   ] as const;
   const l2Wallets = [
     '0x94FEC56BBEcEaCC71c9e61623ACE9F8e1B1cf473',
