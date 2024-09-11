@@ -6,6 +6,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { MANTLE_TREASURY_ADDRESS } from "config/general";
 import { request } from "graphql-request";
 import { TreasuryToken } from "types/treasury.d";
+import { COIN_GECKO_API_URL } from '@/constant';
 
 /**
  * @swagger
@@ -40,8 +41,6 @@ import { TreasuryToken } from "types/treasury.d";
 const HashZero =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 const CACHE_TIME = 1800;
-const COIN_GECKO_API_URL = "https://pro-api.coingecko.com/api/v3/";
-const COIN_GECKO_API_KEY = process.env.COIN_GECKO_API_KEY;
 const alchemySettings = {
   apiKey: "", // Replace with your Alchemy API Key.
   network: Network.ETH_MAINNET, // Replace with your network.
@@ -133,19 +132,17 @@ export const dataHandler = async (alchemyApi: string, addresses: string[]) => {
       Promise.all(
         addresses.map(async (item) => {
           return alchemy.core.getTokenBalances(item);
-        })
+        }),
       ),
       getUniswapLP(addresses[0]),
 
       alchemy.core.getBalance(addresses[0]),
-      fetch(
-        `${COIN_GECKO_API_URL}simple/price?ids=ethereum&vs_currencies=USD&x_cg_pro_api_key=${COIN_GECKO_API_KEY}`
-      )
+      fetch(`${COIN_GECKO_API_URL}simple/price?ids=ethereum&vs_currencies=USD`)
         .then(async (response) => await response.json())
         .catch(async () => {
           // fallback
           const res = await fetch(
-            `https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD`
+            `https://min-api.cryptocompare.com/data/price?fsym=ETH&tsyms=USD`,
           );
           const data = JSON.parse(await res.text());
 
@@ -206,7 +203,7 @@ export const dataHandler = async (alchemyApi: string, addresses: string[]) => {
   let tokenUSDPrices: Record<string, { usd: number }> = {};
   try {
     const tokenUSDPricesResponse = await fetch(
-      `${COIN_GECKO_API_URL}simple/token_price/ethereum?contract_addresses=${tokensAddresses.toString()}&vs_currencies=USD&x_cg_pro_api_key=${COIN_GECKO_API_KEY}`
+      `${COIN_GECKO_API_URL}simple/token_price/ethereum?contract_addresses=${tokensAddresses.toString()}&vs_currencies=USD`,
     );
 
     tokenUSDPrices = (await tokenUSDPricesResponse.json()) as Record<
