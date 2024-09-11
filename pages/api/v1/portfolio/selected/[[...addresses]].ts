@@ -124,8 +124,6 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
         ).then(async (response) => await response.json()),
       ]);
 
-    console.log(ethereum, 'ttt');
-
     let totalBalances: Array<TokenBalance & { parent: string }> = [];
     for (const item of balancesSet) {
       totalBalances = [
