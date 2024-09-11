@@ -370,6 +370,7 @@ const handler = async (req: NextApiRequest, res: NextApiResponse) => {
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
+    console.error(error);
     res
       .status(500)
       .json({ success: false, statusCode: 500, message: error?.message });
