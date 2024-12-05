@@ -3,7 +3,7 @@ import type {
   TreasuryStatistic,
   TreasuryTokenBalance as TokenBalance,
 } from '@/types/treasury-token';
-import fetchTreasuryWallets from '@/utils/governance-wallets';
+import allWallets from '@/utils/governance-wallets';
 import _ from 'lodash';
 import pThrottle from 'p-throttle';
 
@@ -85,6 +85,14 @@ const erc20Tokens = [
     l2Address: '0xcda86a272531e8640cd7f1a92c01839911b90bb0',
   },
   {
+    symbol: 'cmETH',
+    name: 'cmETH',
+    decimals: 18,
+    coinGeckoId: 'mantle-restaked-eth',
+    l1Address: '0xe6829d9a7ee3040e1276fa75293bde931859e8fa',
+    l2Address: '0xe6829d9a7ee3040e1276fa75293bde931859e8fa',
+  },
+  {
     symbol: 'USDC',
     name: 'USDC',
     decimals: 6,
@@ -164,21 +172,12 @@ export async function fetchTreasuryTokenList(): Promise<TokenBalance[]> {
 export async function fetchTreasuryTokenListWithoutCache(): Promise<
   TokenBalance[]
 > {
-  const allWallets = await fetchTreasuryWallets();
-
-  const eth = await Promise.all(
-    allWallets.map((w) => fetchTokenList(w, 'eth')),
-  );
-  const mnt = await Promise.all(
-    allWallets.map((w) => fetchTokenList(w, 'mnt')),
-  );
-  return [...eth, ...mnt].flat();
-  // return Promise.all(
-  //   allWallets.flatMap((w) => [
-  //     fetchTokenList(w, 'eth'),
-  //     fetchTokenList(w, 'mnt'),
-  //   ]),
-  // ).then((res) => res.flat());
+  return Promise.all(
+    allWallets.flatMap((w) => [
+      fetchTokenList(w, 'eth'),
+      fetchTokenList(w, 'mnt'),
+    ]),
+  ).then((res) => res.flat());
 }
 
 export function statisticTreasuryTokenList(): Promise<TreasuryStatistic> {
@@ -244,6 +243,7 @@ async function statistics(tokens: TokenBalance[]) {
           'is_wallet',
           'decimals',
           'symbol',
+          'logo_url',
         ),
       ),
       {
@@ -427,10 +427,9 @@ function withCache<F extends (...args: any[]) => Promise<any>>(
   }) as F;
 }
 
-const throttle = pThrottle({ limit: 50, interval: 1000 })(() => {});
+const fetchDebank = pThrottle({ limit: 50, interval: 1000 })(_fetchDebank);
 
-async function fetchDebank<T = unknown>(path: string): Promise<T> {
-  await throttle();
+async function _fetchDebank<T = unknown>(path: string): Promise<T> {
   return fetch(`${DEBANK_API_BASE}${path}`, {
     method: 'GET',
     headers: {
