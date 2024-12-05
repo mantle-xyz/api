@@ -203,7 +203,7 @@ async function statistics(tokens: TokenBalance[]) {
   const tokenBalance = wellKnownTokens.map(
     ({ l1Address, l2Address, symbol, name }) => {
       const t1 = tokenMap[l1Address ?? ''];
-      const t2 = tokenMap[l2Address ?? ''];
+      const t2 = l1Address === l2Address ? null : tokenMap[l2Address ?? ''];
       const amount = (t1?.amount || 0) + (t2?.amount || 0);
       const t = t1 || t2 || { price: 0 };
       return { ...t, amount, symbol, name };
