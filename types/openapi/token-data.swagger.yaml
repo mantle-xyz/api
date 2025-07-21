@@ -28,119 +28,43 @@ components:
       additionalProperties: false
       title: TokenBalances
       type: object
-    TokenBalance:
-      properties:
-        contractAddress:
-          title: TokenBalance.contractAddress
-          type: string
-        tokenBalance:
-          title: TokenBalance.tokenBalance
-          type: string
-      required:
-        - contractAddress
-        - tokenBalance
-      additionalProperties: false
-      title: TokenBalance
-      type: object
     TokenBalancesResults:
       properties:
         totalSupply:
           title: TokenBalancesResults.totalSupply
           type: string
-        treasuryBalanceData:
-          properties:
-            address:
-              title: TokenBalancesResults.treasuryBalanceData.address
-              type: string
-            tokenBalances:
-              items:
-                $ref: '#/components/schemas/TokenBalance'
-                title: TokenBalancesResults.treasuryBalanceData.tokenBalances.[]
-              title: TokenBalancesResults.treasuryBalanceData.tokenBalances
-              type: array
-          required:
-            - address
-            - tokenBalances
-          additionalProperties: false
-          title: TokenBalancesResults.treasuryBalanceData
-          type: object
-        treasuryLPBalanceData:
-          properties:
-            address:
-              title: TokenBalancesResults.treasuryLPBalanceData.address
-              type: string
-            tokenBalances:
-              items:
-                $ref: '#/components/schemas/TokenBalance'
-                title: TokenBalancesResults.treasuryLPBalanceData.tokenBalances.[]
-              title: TokenBalancesResults.treasuryLPBalanceData.tokenBalances
-              type: array
-          required:
-            - address
-            - tokenBalances
-          additionalProperties: false
-          title: TokenBalancesResults.treasuryLPBalanceData
-          type: object
-        lockedBalancesData:
-          properties:
-            address:
-              title: TokenBalancesResults.lockedBalancesData.address
-              type: string
-            tokenBalances:
-              items:
-                $ref: '#/components/schemas/TokenBalance'
-                title: TokenBalancesResults.lockedBalancesData.tokenBalances.[]
-              title: TokenBalancesResults.lockedBalancesData.tokenBalances
-              type: array
-          required:
-            - address
-            - tokenBalances
-          additionalProperties: false
-          title: TokenBalancesResults.lockedBalancesData
-          type: object
-        mantleCoreData:
-          properties:
-            address:
-              title: TokenBalancesResults.mantleCoreData.address
-              type: string
-            tokenBalances:
-              items:
-                $ref: '#/components/schemas/TokenBalance'
-                title: TokenBalancesResults.mantleCoreData.tokenBalances.[]
-              title: TokenBalancesResults.mantleCoreData.tokenBalances
-              type: array
-          required:
-            - address
-            - tokenBalances
-          additionalProperties: false
-          title: TokenBalancesResults.mantleCoreData
-          type: object
-        treasuryBalanceTotal:
-          title: TokenBalancesResults.treasuryBalanceTotal
-          type: string
-        treasuryLPTokenTotal:
-          title: TokenBalancesResults.treasuryLPTokenTotal
-          type: string
-        mantleCoreTotal:
-          title: TokenBalancesResults.mantleCoreTotal
-          type: string
-        lockedTotal:
-          title: TokenBalancesResults.lockedTotal
-          type: string
         circulatingSupply:
           title: TokenBalancesResults.circulatingSupply
           type: string
+        treasuryBalance:
+          title: TokenBalancesResults.treasuryBalance
+          type: string
+        treasuryDetail:
+          items:
+            properties:
+              address:
+                title: TokenBalancesResults.treasuryDetail.[].address
+                type: string
+              balance:
+                title: TokenBalancesResults.treasuryDetail.[].balance
+                type: string
+              chain:
+                title: TokenBalancesResults.treasuryDetail.[].chain
+                type: string
+            required:
+              - address
+              - balance
+              - chain
+            additionalProperties: false
+            title: TokenBalancesResults.treasuryDetail.[]
+            type: object
+          title: TokenBalancesResults.treasuryDetail
+          type: array
       required:
         - totalSupply
-        - treasuryBalanceData
-        - treasuryLPBalanceData
-        - lockedBalancesData
-        - mantleCoreData
-        - treasuryBalanceTotal
-        - treasuryLPTokenTotal
-        - mantleCoreTotal
-        - lockedTotal
         - circulatingSupply
+        - treasuryBalance
+        - treasuryDetail
       additionalProperties: false
       title: TokenBalancesResults
       type: object
