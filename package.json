@@ -29,7 +29,7 @@
     "graphql-scalars": "^1.22.4",
     "graphql-yoga": "^5.1.1",
     "lodash": "^4.17.21",
-    "next": "13.4.10",
+    "next": "15.5.28",
     "next-swagger-doc": "^0.4.0",
     "p-throttle": "^6.1.0",
     "postcss": "^8.4.26",
